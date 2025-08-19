@@ -4,7 +4,7 @@ use debug_print::debug_println;
 use lazy_static::lazy_static;
 use rumqttc::{
     tokio_rustls::rustls::{server, ClientConfig},
-    tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
+    tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, PrivatePkcs1KeyDer},
     tokio_rustls::rustls::pki_types::pem::{PemObject, SectionKind, SliceIter},
     AsyncClient, Event, Packet, QoS, TlsConfiguration, Transport,
 };
@@ -69,7 +69,7 @@ pub(crate) async fn connect<R: Runtime>(
                        (Some(client_key), Some(client_cert)) =>{
                            let certs: Vec<_> = CertificateDer::pem_slice_iter(&*client_cert)
                                .map(|cu|cu.unwrap()).collect();
-                           let private_key = PrivatePkcs8KeyDer::from_pem_slice(client_key.as_slice()).unwrap();
+                           let private_key = PrivatePkcs1KeyDer::from_pem_slice(client_key.as_slice()).unwrap();
                            builder.with_client_auth_cert(certs, PrivateKeyDer::from(private_key)).unwrap()
                    },
                    _=>builder.with_no_client_auth(),
