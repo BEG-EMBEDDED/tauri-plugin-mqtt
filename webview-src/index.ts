@@ -76,6 +76,7 @@ export async function disconnect(id: string) {
 
 export interface TlsOptions {
   skipVerification?: boolean;
+  skip_server_verification?: boolean;
   ca?: number[];
   alpn?: number[][];
   client_cert?: number[];

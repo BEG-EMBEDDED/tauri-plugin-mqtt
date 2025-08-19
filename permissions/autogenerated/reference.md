@@ -2,6 +2,8 @@
 
 Allows All
 
+#### This default permission set includes the following:
+
 - `allow-publish`
 - `allow-subscribe`
 - `allow-unsubscribe`

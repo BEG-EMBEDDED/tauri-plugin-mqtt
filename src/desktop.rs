@@ -4,8 +4,11 @@ use debug_print::debug_println;
 use lazy_static::lazy_static;
 use rumqttc::{
     tokio_rustls::rustls::{server, ClientConfig},
+    tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
     AsyncClient, Event, Packet, QoS, TlsConfiguration, Transport,
 };
+use rumqttc::tokio_rustls::rustls::client::WantsClientCert;
+use rumqttc::tokio_rustls::rustls::{ConfigBuilder, RootCertStore};
 use tauri::{Emitter, Manager, Runtime};
 use tokio::{
     io::{self},
@@ -54,21 +57,25 @@ pub(crate) async fn connect<R: Runtime>(
                     .with_no_client_auth();
                 options.set_transport(Transport::tls_with_config(config.into()));
             }
-            TlsOptions::Simple { ca, alpn, client_key, client_cert }=> {
-                let client_auth = match (client_key, client_cert) {
-                    (Some(client_key), Some(client_cert)) => {
-                        Some((client_key, client_cert))
-                    },
-                    _ => None,
-                };
-                let transport = Transport::Tls(TlsConfiguration::Simple {
-                    ca,
-                    alpn,
-                    client_auth,
-                });
-            
-                options.set_transport(transport);
+            TlsOptions::Simple { skip_server_verification,ca, alpn, client_key, client_cert }=> {
+                let mut root_store = RootCertStore::empty();
+                root_store.add(CertificateDer::from(ca)).unwrap();
+               let config = if skip_server_verification {
+                   let builder = ClientConfig::builder().dangerous()
+                       .with_custom_certificate_verifier(SkipServerVerification::new());
+
+                   match (client_key, client_cert) {
+
+                       (Some(client_key), Some(client_cert)) => builder.with_client_auth_cert(vec![CertificateDer::from(client_cert.clone())], PrivatePkcs8KeyDer::from(client_key.clone()).into()).unwrap(),
+                       _=>builder.with_no_client_auth(),
+                   }
+               } else {
+                   ClientConfig::builder().with_root_certificates(root_store).with_no_client_auth()
+               };
+
+                options.set_transport(Transport::tls_with_config(config.into()));
             }
+
             _ => {}
         }
     }

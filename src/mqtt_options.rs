@@ -10,6 +10,7 @@ pub(crate) enum TlsOptions {
     SkipVerification(bool),
     #[serde(untagged)]
     Simple {
+        skip_server_verification: bool,
         ca: Vec<u8>,
         alpn: Option<Vec<Vec<u8>>>,
         client_cert: Option<Vec<u8>>, 
