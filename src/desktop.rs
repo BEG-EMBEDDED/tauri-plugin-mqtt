@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use rumqttc::{
     tokio_rustls::rustls::{server, ClientConfig},
     tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
+    tokio_rustls::rustls::pki_types::pem::{PemObject, SectionKind, SliceIter},
     AsyncClient, Event, Packet, QoS, TlsConfiguration, Transport,
 };
 use rumqttc::tokio_rustls::rustls::client::WantsClientCert;
@@ -65,9 +66,13 @@ pub(crate) async fn connect<R: Runtime>(
                        .with_custom_certificate_verifier(SkipServerVerification::new());
 
                    match (client_key, client_cert) {
-
-                       (Some(client_key), Some(client_cert)) => builder.with_client_auth_cert(vec![CertificateDer::from(client_cert.clone())], PrivatePkcs8KeyDer::from(client_key.clone()).into()).unwrap(),
-                       _=>builder.with_no_client_auth(),
+                       (Some(client_key), Some(client_cert)) =>{
+                           let certs: Vec<_> = CertificateDer::pem_slice_iter(&*client_cert)
+                               .map(|cu|cu.unwrap()).collect();
+                           let private_key = PrivatePkcs8KeyDer::from_pem_slice(client_key.as_slice()).unwrap();
+                           builder.with_client_auth_cert(certs, PrivateKeyDer::from(private_key)).unwrap()
+                   },
+                   _=>builder.with_no_client_auth(),
                    }
                } else {
                    ClientConfig::builder().with_root_certificates(root_store).with_no_client_auth()
