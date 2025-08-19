@@ -60,7 +60,7 @@ pub(crate) async fn connect<R: Runtime>(
             }
             TlsOptions::Simple { skip_server_verification,ca, alpn, client_key, client_cert }=> {
                 let mut root_store = RootCertStore::empty();
-                root_store.add(CertificateDer::from(ca)).unwrap();
+                root_store.add(CertificateDer::from_pem_slice(&*ca).unwrap()).unwrap();
                let config = if skip_server_verification {
                    let builder = ClientConfig::builder().dangerous()
                        .with_custom_certificate_verifier(SkipServerVerification::new());
